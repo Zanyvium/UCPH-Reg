@@ -97,6 +97,10 @@ blablabla
 24. CTRL + ALT + K highlights all similar words in block for editing.
 
 25. `utils::browseURL(getwd())` opens the working directory in windows explorer
+
+26. `git commit -a -m "commit message"` as implemented within the (git) terminal (can be accessed within the git menu in RStudio via the "More" (gear icon)) commits all (-a) files within the perview of git using the message (-m) "commit message"
+
+27. `git push` as implemented within the (git) terminal pushes the commit, as standard and when in a RProject, to the repository's main branch, unless otherwise specified.
 -->
 ```
 <!-- ---?--- How do I create a closeable Rmd section, such that I do not have to scroll through the LaTeX commands each time? - !!! Can be done with '-----' through this also creates a line in the knittet document. -->
