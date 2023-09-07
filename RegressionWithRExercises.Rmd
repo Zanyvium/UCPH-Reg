@@ -417,6 +417,9 @@ set.seed(314)
 
 # Chapter 2: The linear model
 
+## Exercise 2.1
+
+## Exercise 2.3
 
 # Chapter 3: Birth weight - a case study
 

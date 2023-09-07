@@ -1,8 +1,8 @@
 ---
-title: "Regression with R"
+title: "Regression with R Exercises"
 author: "Victor Z. Nygaard"
 abstract: |
-  This document is to follow along, and reimplement the code, which is implemented in the Regression with R book by Niels Richard Hansen, as is used in the UCPH MSc Statistics course on Regression.
+  This document is to meant to convey the results of exercises for the UCPH masters course on Regression.
 header-includes:
    - \usepackage[utf8]{inputenc}
    - \usepackage{verbatim}
@@ -143,8 +143,6 @@ blablabla
 
 <!---Naturlige tal--->
 
-\newcommand{\E}{\mathbb{E}}
-
 <!---mean--->
 
 \newcommand{\F}{\mathbb{F}}
@@ -165,41 +163,6 @@ blablabla
 
 \newcommand{\ms}[1]{\mathscr{#1}}
 \newcommand{\mc}[1]{\mathcal{#1}}
-\newcommand{\BR}{\mathcal{B}\left(\R\right)}
-
-<!---Borel på Reelle tal -->
-
-\newcommand{\BRB}{\mathcal{B}\left(\RB\right))}
-
-<!---Borel på udvidede reelle tal -->
-
-\newcommand{\mf}[1]{\mathfrak{#1}} 
-\newcommand{\mcG}[2]{\mathcal{#1}^1(#2)} 
-\newcommand{\mcGG}[4]{\mathcal{#1}_{#3}^{#2}(#4)}
-\newcommand{\GMR}{\left(X,\ms{A},\mu\right)}
-
-<!---Generelt målrum -->
-
-\newcommand{\PBS}{\lrp{\Omega,\F, P}}
-
-<!--- Probability background space -->
-
-\newcommand{\RMR}{\left(\R,\BR, \lambda\right)}
-
-<!---Reelt målrum, m. Borel, og lebesgue mål. -->
-
-<!---L_p spaces on [0,1] with m -->
-
-
-<!---Bounded linear functionals from X to Y -->
-
-\newcommand{\mckxy}{\mc{K}\lrp{X,Y}}
-
-<!---Compact Bounded linear functionals from X to Y -->
-
-\newcommand{\mssr}{\ms{S}(\R)}
-
-<!---The Schwartz space on $\R$ -->
 
 <!---Arrows -->
 
@@ -225,12 +188,6 @@ blablabla
 
 \newcommand{\nlra}{\nleftrightarrow}
 
-<!---ikke højre venstre pil -->
-
-\newcommand{\hra}{\hookrightarrow}
-
-<!---Injektiv  pil højre -->
-
 \newcommand{\Ra}{\Rightarrow}
 
 <!---Implikations pil højre -->
@@ -247,45 +204,8 @@ blablabla
 
 <!---implikations pil (ned) -->
 
-\newcommand{\rhpu}{\rightharpoonup}
-
-<!---Weak convergence in Hilbert spaces -->
-
-<!-- LHS & RHS calculations -->
-
-\newcommand{\swel}{\overset{\swarrow}{=}}
-
-<!---Continue calculation on left hand side with equality -->
-
-\newcommand{\sweq}{\overset{\swarrow}{\equiv}}
-
-<!---Continue calculation on left hand side with equivalence -->
-
-\newcommand{\seel}{\overset{\searrow}{=}}
-
-<!---Continue calculation on right hand side with equality -->
-
-\newcommand{\seeq}{\overset{\searrow}{\equiv}}
-
-<!---Continue calculation on right hand side with equivalence -->
-
-\newcommand{\inse}{\overset{\cdot}{=}}
-
-<!--- Insert values in calculation -->
 
 \newcommand{\eqd}{\overset{d.}{=}}
-
-\newcommand{\PMX}{\mc{P}\left(X\right)}
-
-<!---Potensmængde af X -->
-
-\newcommand{\comp}{\mathsf{c}}
-
-<!---Set compliment -->
-
-\newcommand{\sm}{\setminus}
-
-<!---mængdedifferens -->
 
 <!--- Parenteser --->
 
@@ -321,71 +241,6 @@ blablabla
 
 <!---ceil --->
 
-\newcommand{\FFou}[1]{\mc{F}(#1)}
-
-<!---Fourier Transform notation 1 --->
-
-\newcommand{\Fou}[1]{\widehat{#1}}
-
-<!---Fourier Transform notation 2 --->
-
-<!--- Farver --->
-
-\newcommand{\blue}[1]{\textcolor{blue}{{#1}}}
-
-<!--- Turning text blue --->
-
-\newcommand{\red}[1]{\textcolor{red}{{#1}}}
-
-<!--- Turning text red --->
-
-\newcommand{\green}[1]{\textcolor{green}{{#1}}}
-
-<!--- Turning text green --->
-
-\newcommand{\purple}[1]{\textcolor{purple}{{#1}}}
-
-<!--- Turning text purple --->
-
-\newcommand{\cyan}[1]{\textcolor{cyan}{{#1}}}
-
-<!--- Turning text cyan --->
-
-\newcommand{\orange}[1]{\textcolor{orange}{{#1}}}
-
-<!--- Turning text orange --->
-
-<!--- Oversetting bold accents --->
-
-\newcommand{\boldhat}[1]{\mathbf{\hat{\text{$#1$}}}}
-\newcommand{\boldbar}[1]{\mathbf{\bar{\text{$#1$}}}}
-\newcommand{\boldtilde}[1]{\mathbf{\tilde{\text{$#1$}}}}
-\newcommand{\boldcheck}[1]{\mathbf{\check{\text{$#1$}}}}
-\newcommand{\indep}{\perp \!\!\! \perp}
-
-<!---independence --->
-
-
-\newcommand{\colvec}[1]{\begin{pmatrix}{#1}\end{pmatrix}}
-
-<!-- Begin column vector - Doesn't seem to work with non-column vectors...-->
-
-\newcommand{\nd}[2]{\mc{N}\lrp{{#1},{#2}}}
-
-<!-- Normal distribution -->
-
-\newcommand{\dnd}[2]{\sim\mc{N}\lrp{{#1},{#2}}}
-
-<!-- Distributed as Normal distribution -->
-
-\newcommand{\wnd}[3]{\frac{1}{\sqrt{2\pi\cdot {#3}}}e^{-\frac{1}{2}\frac{\lrp{{#1}-{#2}}^2}{{#3}}}}
-
-<!-- With normal density (prob = #1, mean = #2, variance = #3 -->
-
-\newcommand{\wpd}[2]{\frac{{#2}^{{#1}}\cdot e^{-{#2}}}{{#1}\!}}
-
-<!-- With poisson density (prob = #1, mean = #2 -->
-
 \newcommand{\ep}{\varepsilon}
 
 <!-- \newcommand{\Rlogo}{![](../Data/R_logo.png){#id .class width=auto height=16px} } <!-- R logo implemented in text -->
@@ -412,10 +267,112 @@ library(microbenchmark)
 library(scales) #used for log trans of ggplot
 #library(stats4) #mle and stuff
 library(conflicted) #provides warnings when matching function available in multiple namespaces
+
+### For Regression course:
+library(ggplot2)   ## Grammar of graphics
+library(reshape)   ## Reshaping data frame
+library(lattice)   ## More graphics
+library(hexbin)    ## and more graphics
+library(gridExtra) ## ... and more graphics (placing graphs adjecent)
+library(xtable)    ## LaTeX formatting of tables
+library(splines)   ## Splines
+library(survival)  ## Survival analysis
+library(grid)      ## For `unit`
+library(lpSolve)   ## Linear programming
+library(RwR)       ## Regression with R package
+
 set.seed(314)
 ```
 
 # Chapter 2: The linear model
+
+```{r}
+claims <- read.table(
+  "http://www.math.ku.dk/~richard/regression/data/claims.txt", 
+  sep = ";",
+  colClasses = c("character", "numeric", "numeric", "factor")
+)
+```
+
+```{r}
+head(claims)
+claims %>% tail()
+```
+
+```{r}
+p0 <- qplot(sum, claims, data = claims, alpha = I(0.2)) +
+  scale_x_log10("Insurance sum (DKK)", 
+                breaks = 10^c(6, 7, 8),
+                labels = c("1M", "10M", "100M")) +
+  scale_y_log10("Claim size (DKK)", 
+                breaks = 10^c(2, 4, 6, 8),
+                labels = c("100", "10k", "1M", "100M"))
+(p <- p0 + geom_smooth(method = "lm", linewidth = 1.5, se = FALSE))
+```
+
+```{r}
+p + facet_wrap(~ grp, ncol = 4)
+```
+
+```{r}
+claimsLm <- lm(I(log(claims)) ~ I(log(sum)), data = claims)
+summary(claimsLm)
+coefficients(claimsLm)
+```
+```{r}
+model.matrix(claimsLm)[781:784,]
+```
+```{r}
+claimsLmAddUnres <- lm(I(log(claims)) ~ I(log(sum)) + grp, data = claims)
+summary(claimsLmAddUnres)
+coefficients(claimsLmAddUnres)
+```
+```{r}
+model.matrix(claimsLmAddUnres)[781:784, ]
+```
+
+```{r}
+claimsLmAdd <- lm(I(log(claims)) ~ I(log(sum)) + grp, data = claims,
+                                      contrasts = list(grp = "contr.sum"))
+
+summary(claimsLmAdd)
+coefficients(claimsLmAdd)
+```
+```{r}
+model.matrix(claimsLmAdd)[781:784, ]
+```
+
+```{r}
+claimsLmInt <- lm(I(log(claims)) ~ I(log(sum)) * grp, data = claims)
+claimsLmInt %>% summary
+claimsLmInt %>% coefficients
+```
+
+```{r}
+model.matrix(claimsLmInt)[781:784, ]
+```
+
+```{r}
+claimsDiagnos <- fortify(claimsLm)
+claimsDiagnos %>% head()
+```
+
+
+```{r}
+grid.arrange(
+  qplot(.fitted, .resid, data = claimsDiagnos, alpha = I(0.2)) +
+    geom_smooth(),
+  qplot(.resid, data = claimsDiagnos, bins = I(40)),
+  qplot(sample = .stdresid, data = claimsDiagnos, geom = "qq") +
+          geom_abline(),
+  ncol = 3
+)
+```
+
+
+```{r}
+
+```
 
 
 # Chapter 3: Birth weight - a case study
