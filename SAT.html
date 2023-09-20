@@ -398,7 +398,7 @@ students taking the test.</p>
   header = TRUE)</code></pre>
 <pre class="r"><code>library(tidyverse)</code></pre>
 <pre><code>## ── Attaching core tidyverse packages ──────────────────────── tidyverse 2.0.0 ──
-## ✔ dplyr     1.1.2     ✔ readr     2.1.4
+## ✔ dplyr     1.1.3     ✔ readr     2.1.4
 ## ✔ forcats   1.0.0     ✔ stringr   1.5.0
 ## ✔ ggplot2   3.4.3     ✔ tibble    3.2.1
 ## ✔ lubridate 1.9.2     ✔ tidyr     1.3.0
@@ -475,20 +475,95 @@ representing an intercept and two piecewise linear functions. You can,
 for instance, generate a basis using an <code>ifelse</code>
 construction. Try different bases. Is there anyone particularly suitable
 for testing the linearity assumption?</em></p>
-<p>We may mutate the data frame to create an indicator as to whether
+<p>We may mutate the data frame to create an effect which activates post
 <code>percent&gt;=50</code>. We could also do without this step and
 simply include this test in the formula directly.</p>
-<pre class="r"><code>sat &lt;- sat %&gt;% mutate(above50 = percent &gt;= 50)
-sat %&gt;% head()</code></pre>
-<pre><code>##   percent verbalScore above50
-## 1       4         482   FALSE
-## 2       5         498   FALSE
-## 3       5         513   FALSE
-## 4       6         498   FALSE
-## 5       6         511   FALSE
-## 6       7         479   FALSE</code></pre>
-<p>We may build a piecewise model based on having regression based on
-two basis functions. What we want is essentially</p>
+<p>We assume the linear model <span class="math display">\[
+Y_i = X_i^T\beta + \varepsilon_i
+\]</span> with the model matrix <span class="math inline">\(X\)</span>
+parametrised such that it has four columns: One for the (baseline,
+<code>percent&lt;50</code>) intercept, one for percent, one for the
+indicator of <code>percent&gt;=50</code> and one for the
+<code>percent&gt;=50</code> modulated slope. This could be an
+interaction model with two group levels, as to which half of
+<code>percent</code> (written as <span class="math inline">\(p\)</span>
+for short in the equation below, along with the indicator <span class="math inline">\(ph\)</span> (percent half)) the response value is
+for: <span class="math display">\[\begin{equation}
+E(Y_i|X_{i,p},ph_{q(i)}) = \beta_0 + \beta_{p}X_{i,p}\\
++ (\beta_{ph_{\geq 50}} + \beta_{p, ph_{\geq 50}}X_{i,p})X_{i,ph_{\geq
+50}},
+\end{equation}\]</span> with <span class="math inline">\(q(i)\)</span>
+signifying allegiance to <code>percent&lt;50</code> or
+<code>percent&gt;=50</code> depending on whether <span class="math inline">\(X_{i,p}\)</span> is less than, or greater than or
+equal to <span class="math inline">\(50.\)</span></p>
+<p>We may start by showcasing the fitting of such a linear model, via
+construction of the model matrix.</p>
+<pre class="r"><code>X_names &lt;- c(&quot;(Intercept)&quot;, &quot;percent&quot;, &quot;above50&quot;, &quot;percent:above50&quot;)
+X &lt;- cbind(rep(1L,nrow(sat)), as.integer(sat$percent), sat$percent &gt;= 50, as.integer(sat$percent * (sat$percent &gt;= 50)))
+colnames(X) &lt;- X_names
+X[sample((1:nrow(sat)), 6), ]</code></pre>
+<pre><code>##      (Intercept) percent above50 percent:above50
+## [1,]           1      20       0               0
+## [2,]           1      52       1              52
+## [3,]           1      62       1              62
+## [4,]           1      10       0               0
+## [5,]           1      45       0               0
+## [6,]           1      49       0               0</code></pre>
+<pre class="r"><code>lm_above50_matrix_lmfit &lt;- lm.fit(x = X, y = sat$verbalScore)
+lm_above50_matrix_lm &lt;- lm(verbalScore ~ X + 0, data = sat)
+lm_above50_matrix_lmfit$coefficients</code></pre>
+<pre><code>##     (Intercept)         percent         above50 percent:above50 
+##      497.891737       -1.643045     -113.298157        2.277922</code></pre>
+<pre class="r"><code>summary(lm_above50_matrix_lm)</code></pre>
+<pre><code>## 
+## Call:
+## lm(formula = verbalScore ~ X + 0, data = sat)
+## 
+## Residuals:
+##     Min      1Q  Median      3Q     Max 
+## -23.889  -6.902  -0.383   8.432  24.663 
+## 
+## Coefficients:
+##                   Estimate Std. Error t value Pr(&gt;|t|)    
+## X(Intercept)      497.8917     3.6800 135.298  &lt; 2e-16 ***
+## Xpercent           -1.6430     0.1686  -9.744 9.21e-13 ***
+## Xabove50         -113.2982    24.2843  -4.665 2.68e-05 ***
+## Xpercent:above50    2.2779     0.4145   5.495 1.64e-06 ***
+## ---
+## Signif. codes:  0 &#39;***&#39; 0.001 &#39;**&#39; 0.01 &#39;*&#39; 0.05 &#39;.&#39; 0.1 &#39; &#39; 1
+## 
+## Residual standard error: 12.03 on 46 degrees of freedom
+## Multiple R-squared:  0.9994, Adjusted R-squared:  0.9993 
+## F-statistic: 1.777e+04 on 4 and 46 DF,  p-value: &lt; 2.2e-16</code></pre>
+<p>We may also implement the traditional <code>lm</code>-call</p>
+<pre class="r"><code>lm_above50 &lt;- lm(verbalScore ~ percent * I(percent&gt;=50), data = sat)
+summary(lm_above50)</code></pre>
+<pre><code>## 
+## Call:
+## lm(formula = verbalScore ~ percent * I(percent &gt;= 50), data = sat)
+## 
+## Residuals:
+##     Min      1Q  Median      3Q     Max 
+## -23.889  -6.902  -0.383   8.432  24.663 
+## 
+## Coefficients:
+##                               Estimate Std. Error t value Pr(&gt;|t|)    
+## (Intercept)                   497.8917     3.6800 135.298  &lt; 2e-16 ***
+## percent                        -1.6430     0.1686  -9.744 9.21e-13 ***
+## I(percent &gt;= 50)TRUE         -113.2982    24.2843  -4.665 2.68e-05 ***
+## percent:I(percent &gt;= 50)TRUE    2.2779     0.4145   5.495 1.64e-06 ***
+## ---
+## Signif. codes:  0 &#39;***&#39; 0.001 &#39;**&#39; 0.01 &#39;*&#39; 0.05 &#39;.&#39; 0.1 &#39; &#39; 1
+## 
+## Residual standard error: 12.03 on 46 degrees of freedom
+## Multiple R-squared:  0.8458, Adjusted R-squared:  0.8358 
+## F-statistic: 84.13 on 3 and 46 DF,  p-value: &lt; 2.2e-16</code></pre>
+<p>Using the estimates we may draw the resulting model:</p>
+<pre class="r"><code># lm_above50_coefficients &lt;- as.numeric(lm_above50_matrix_lmfit$coefficients)
+# lm_above50_function &lt;- function(percent) {
+#   lm_above50_coefficients[1] + 
+# }
+# p_sat + geom_function(fun = ~ </code></pre>
 </div>
 <div id="question-3" class="section level2">
 <h2>Question 3</h2>

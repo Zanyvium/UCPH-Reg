@@ -88,17 +88,71 @@ two piecewise linear functions. You can, for instance, generate a basis using an
 `ifelse` construction. Try different bases. Is there anyone particularly suitable for 
 testing the linearity assumption?*
 
-We may mutate the data frame to create an indicator as to whether `percent>=50`. We could also do without this step and simply include this test in the formula directly.
+We may mutate the data frame to create an effect which activates post `percent>=50`. We could also do without this step and simply include this test in the formula directly.
+
+We assume the linear model
+$$
+Y_i = X_i^T\beta + \varepsilon_i 
+$$
+with the model matrix $X$ parametrised such that it has four columns: One for the (baseline, `percent<50`) intercept, one for percent, one for the indicator of `percent>=50` and one for the `percent>=50` modulated slope. This could be an interaction model with two group levels, as to which half of `percent` (written as $p$ for short in the equation below, along with the indicator $ph$ (percent half)) the response value is for:
+\begin{equation}
+E(Y_i|X_{i,p},ph_{q(i)}) = \beta_0 + \beta_{p}X_{i,p}\\
++ (\beta_{ph_{\geq 50}} + \beta_{p, ph_{\geq 50}}X_{i,p})X_{i,ph_{\geq 50}},
+\end{equation}
+with $q(i)$ signifying allegiance to `percent<50` or `percent>=50` depending on whether $X_{i,p}$ is less than, or greater than or equal to $50.$
+
+We may start by showcasing the fitting of such a linear model, via construction of the model matrix.
 ```{r}
-sat <- sat %>% mutate(above50 = percent >= 50)
-sat %>% head()
+X_names <- c("(Intercept)", "percent", "above50", "percent:above50")
+X <- cbind(rep(1L,nrow(sat)), as.integer(sat$percent), sat$percent >= 50, as.integer(sat$percent * (sat$percent >= 50)))
+colnames(X) <- X_names
+X[sample((1:nrow(sat)), 6), ]
 ```
 
-
-We may build a piecewise model based on having regression based on two basis functions.
-What we want is essentially 
 ```{r}
+lm_above50_matrix_lmfit <- lm.fit(x = X, y = sat$verbalScore)
+lm_above50_matrix_lm <- lm(verbalScore ~ X + 0, data = sat)
+lm_above50_matrix_lmfit$coefficients
+```
 
+```{r}
+summary(lm_above50_matrix_lm)
+```
+We may also implement the traditional `lm`-call
+```{r}
+lm_above50 <- lm(verbalScore ~ percent * I(percent>=50), data = sat)
+summary(lm_above50)
+```
+Using the estimates we may draw the resulting model:
+```{r}
+lm_above50_coef <- lm_above50_matrix_lmfit$coefficients
+lm_above50_func <- function(percent) {
+  return(lm_above50_coef[["(Intercept)"]] + lm_above50_coef[["percent"]]*percent + (lm_above50_coef[["above50"]]+lm_above50_coef[["percent:above50"]]*percent)*(percent>=50))
+}
+
+p_sat + geom_function(mapping = aes(colour = (sat$percent>=50)), fun = lm_above50_func)
+sat %>%
+  mutate(above50 = (percent>=50)) %>%
+  ggplot(aes(x = percent, y = verbalScore)) +
+  geom_point() +
+  geom_function(mapping = aes(colour = above50), fun = lm_above50_func, size = 1)
+```
+
+Though the correct colouring for `geom_function` is lacking.
+```{r}
+sat %>% ggplot(aes(x = percent, y = verbalScore, colour = (percent>=50), group = 1)) +
+  geom_point() +
+  geom_line() +
+  xlab('X') + ylab('Y') +
+  scale_colour_manual(values = c("red", "blue")) +
+  theme(legend.position='top')
+```
+
+```{r}
+sat %>% ggplot(aes(x = percent, y = verbalScore, colour = (percent>=50), group = 1)) +
+  geom_point() +
+  geom_function(fun = lm_above50_func) +
+  theme(legend.position = 'top')
 ```
 
 
@@ -107,6 +161,9 @@ What we want is essentially
 Fit a natural cubic spline model with 4 knots. Use the `ns` function to generate a B-spline basis.
 How should you choose the placements of the knots?
 How can you formally test the linearity assumption within this larger model?
+
+<!-- Standard "introduktion til statistik" side 133 svar / brug af anova -->
+
 
 
 ## Changing the output format

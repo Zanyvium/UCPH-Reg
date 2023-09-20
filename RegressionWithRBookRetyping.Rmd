@@ -266,14 +266,22 @@ library(expm)
 library(microbenchmark)
 library(scales) #used for log trans of ggplot
 #library(stats4) #mle and stuff
-library(conflicted) #provides warnings when matching function available in multiple namespaces
+
+## warnings when calling functions present in multiple namespaces
+## use conflict_scout() to scout conflicts in current session
+library(conflicted)
+conflict_prefer(name = "select",
+                winner = "dplyr",
+                losers = "MASS")   ## Prefer dplyr::select over MASS::select
+
 
 ### For Regression course:
 library(ggplot2)   ## Grammar of graphics
 library(reshape)   ## Reshaping data frame
 library(lattice)   ## More graphics
 library(hexbin)    ## and more graphics
-library(gridExtra) ## ... and more graphics (placing graphs adjecent)
+library(gridExtra) ## ... and more graphics (placing graphs adjacent)
+library(latex2exp) ## ... (allows for placing latex symbols in ggplot)
 library(xtable)    ## LaTeX formatting of tables
 library(splines)   ## Splines
 library(survival)  ## Survival analysis
@@ -319,14 +327,17 @@ claimsLm <- lm(I(log(claims)) ~ I(log(sum)), data = claims)
 summary(claimsLm)
 coefficients(claimsLm)
 ```
+
 ```{r}
 model.matrix(claimsLm)[781:784,]
 ```
+
 ```{r}
 claimsLmAddUnres <- lm(I(log(claims)) ~ I(log(sum)) + grp, data = claims)
 summary(claimsLmAddUnres)
 coefficients(claimsLmAddUnres)
 ```
+
 ```{r}
 model.matrix(claimsLmAddUnres)[781:784, ]
 ```
@@ -338,6 +349,7 @@ claimsLmAdd <- lm(I(log(claims)) ~ I(log(sum)) + grp, data = claims,
 summary(claimsLmAdd)
 coefficients(claimsLmAdd)
 ```
+
 ```{r}
 model.matrix(claimsLmAdd)[781:784, ]
 ```
@@ -356,6 +368,17 @@ model.matrix(claimsLmInt)[781:784, ]
 claimsDiagnos <- fortify(claimsLm)
 claimsDiagnos %>% head()
 ```
+<!-- changing to the naming syntax of the tidyverse style guide https://style.tidyverse.org/syntax.html -->
+
+```{r}
+claims_diagnos_add <- fortify(claimsLmAdd)
+claims_diagnos_add %>% head()
+```
+
+```{r}
+claims_diagnos_int <- fortify(claimsLmInt)
+claims_diagnos_int %>% head()
+```
 
 
 ```{r}
@@ -365,17 +388,297 @@ grid.arrange(
   qplot(.resid, data = claimsDiagnos, bins = I(40)),
   qplot(sample = .stdresid, data = claimsDiagnos, geom = "qq") +
           geom_abline(),
-  ncol = 3
+  ncol = 3, top = "basic model"
+)
+```
+
+```{r}
+grid.arrange(
+  qplot(.fitted, .resid, data = claims_diagnos_add, alpha = I(0.2)) +
+    geom_smooth(),
+  qplot(.resid, data = claims_diagnos_add, bins = I(40)),
+  qplot(sample = .stdresid, data = claims_diagnos_add, geom = "qq") +
+          geom_abline(),
+  ncol = 3, top = "additive model"
 )
 ```
 
 
 ```{r}
-
+grid.arrange(
+  qplot(.fitted, .resid, data = claims_diagnos_int, alpha = I(0.2)) +
+    geom_smooth(),
+  qplot(.resid, data = claims_diagnos_int, bins = I(40)),
+  qplot(sample = .stdresid, data = claims_diagnos_int, geom = "qq") +
+          geom_abline(),
+  ncol = 3, top = "interaction model"
+)
 ```
 
 
+```{r}
+anova(claimsLm, claimsLmAdd, claimsLmInt)
+```
+
+```{r}
+claims_lm_spline_add <- lm(I(log(claims)) ~ ns(log(sum), knots = c(13,15,17,19))
+                           + grp,
+                           data = claims)
+
+claims_lm_spline_int <- lm(I(log(claims)) ~ ns(log(sum), knots = c(13,15,17,19))
+                           * grp,
+                           data = claims)
+```
+
+```{r}
+summary(claims_lm_spline_add)
+```
+
+```{r}
+summary(claims_lm_spline_int)
+```
+
+```{r}
+claims_diagnos_spline_add <- fortify(claims_lm_spline_add)
+claims_diagnos_spline_add %>% head()
+```
+
+```{r}
+claims_diagnos_spline_int <- fortify(claims_lm_spline_int)
+claims_diagnos_spline_int %>% head()
+```
+
+```{r}
+grid.arrange(
+  qplot(.fitted, .resid, data = claims_diagnos_spline_add, alpha = I(0.2)) +
+    geom_smooth(),
+  qplot(.resid, data = claims_diagnos_spline_add, bins = I(40)),
+  qplot(sample = .stdresid, data = claims_diagnos_spline_add, geom = "qq") +
+          geom_abline(),
+  ncol = 3, top = "additive spline model"
+)
+```
+
+```{r}
+grid.arrange(
+  qplot(.fitted, .resid, data = claims_diagnos_spline_int, alpha = I(0.2)) +
+    geom_smooth(),
+  qplot(.resid, data = claims_diagnos_spline_int, bins = I(40)),
+  qplot(sample = .stdresid, data = claims_diagnos_spline_int, geom = "qq") +
+          geom_abline(),
+  ncol = 3, top = "interaction spline model"
+)
+```
+We may plot the splines used:
+```{r}
+# Here the conflicted package makes an error, as melt is ambiguous between
+# reshape::melt and reshape2::melt
+
+# ns_tibble <- ns(log(claims$sum), knots = c(13,15,17,19)) %>%
+#   as_tibble() %>%
+#   rename_with(~ paste0("ns_", .), recycle0 = TRUE) %>%
+#   mutate(log_sum = log(claims$sum), .before = 1) %>% 
+#   melt(id.vars = c("log_sum"))
+```
+
+```{r}
+# We thus force a specification:
+conflicts_prefer(reshape2::melt)
+
+ns_tibble <- ns(log(claims$sum), knots = c(13,15,17,19)) %>%
+  as_tibble() %>%
+  rename_with(~ paste0("ns_", .), recycle0 = TRUE) %>%
+  mutate(log_sum = log(claims$sum), .before = 1) %>% 
+  melt(id.vars = c("log_sum"), 
+       variable.name = "spline",
+       value.name = "spline_value") %>% 
+  select(c("log_sum", "spline_value", "spline")) #reorder columns
+ns_tibble %>% head()
+```
+
+```{r}
+ns_tibble %>%
+  ggplot(mapping = aes(x = log_sum, y = as.numeric(spline_value), colour = spline)) + 
+  geom_line() + 
+  labs(colour = "Spline",
+       x = "log sum",
+       y = "spline value",
+       title = "Natural spline basis-functions used in models.")
+```
+
+```{r}
+pred_add <- cbind(claims, exp(predict(claims_lm_spline_add,
+                                     interval = "confidence")))
+pred_add %>% head()
+pred_int <- cbind(claims, exp(predict(claims_lm_spline_int,
+                                     interval = "confidence")))
+
+p0 <- p0 + facet_wrap(~ grp, ncol = 4) + 
+  coord_cartesian(ylim = c(1e2, 1e6))
+
+p0 + geom_line(data = pred_add,
+               mapping = aes(y = fit),
+               colour = "blue",
+               size = 2) +
+  geom_ribbon(data = pred_add,
+              mapping = aes(ymax = upr, ymin = lwr),
+              fill = "blue",
+              alpha = 0.2) +
+  geom_line(data = pred_int,
+            mapping = aes(y = fit),
+            colour = "red",
+            size = 2) +
+  geom_ribbon(data = pred_int,
+              mapping = aes(ymax = upr, ymin = lwr),
+              fill = "red",
+              alpha = 0.2)
+  
+
+```
+
+```{r}
+anova(claimsLmAdd, claims_lm_spline_add, claims_lm_spline_int)
+```
+
+```{r}
+# prefer dplyr::rename over reshape::rename
+conflicted::conflicts_prefer(dplyr::rename)
+
+X <- model.matrix(claims_lm_spline_int)
+y <- model.response(model.frame(claims_lm_spline_int))
+
+XtX <- crossprod(X)   ## Faster than but equivalent to t(X) %*% X
+Xty <- crossprod(X,y) ## Faster than but equivalent to t(X) %*% y
+
+coefHat <- solve(XtX, Xty)
+range(coefHat - coefficients(claims_lm_spline_int))
+```
+
+<!-- ??? Below doesn't work -->
+<!-- model.frame(claims_lm_spline_int) %>% -->
+<!--   select(across(starts_with("ns"))) %>% head() -->
+<!--   rename(paste0("ns_",1:5), 2:6) %>% -->
+<!--   head() -->
+
+```{r}
+Omega <- diag(c(rep(0, 9), rep(1, 15)))
+coefHat <- cbind(solve(XtX + 0.1 * Omega, Xty),
+                 solve(XtX + 1 * Omega, Xty),
+                 solve(XtX + 10 * Omega, Xty))
+```
+
+
+```{r}
+# Using TeX from the latex2exp package
+tmp <- cbind(coefficients(claims_lm_spline_int),
+                          coefHat, 
+                          c(coefficients(claims_lm_spline_add), rep(0, 15)))
+pred <- cbind(claims[,c("sum", "grp")], exp(X %*% tmp)) %>%
+  melt(id.vars = c("grp", "sum"))
+p0 + geom_line(data = pred, aes(y = value, colour = variable), size = 2) +
+  theme(legend.position = "top") +
+  scale_colour_discrete(TeX("$\\lambda$"), 
+                        labels = c("0", "0.1",
+                                   "1", "10",
+                                   TeX("$\\infinity$ (additive model)")))
+```
+
+```{r}
+fit_lamb_1 <- lm.fit(rbind(X, sqrt(0.1) * Omega),
+                     c(y, rep(0, ncol(Omega))))
+#fit_lamb_1 %>% summary()
+fit_lamb_2 <- lm.fit(rbind(X, sqrt(1) * Omega),
+                     c(y, rep(0, ncol(Omega))))
+fit_lamb_3 <- lm.fit(rbind(X, sqrt(10) * Omega),
+                     c(y, rep(0, ncol(Omega))))
+
+## comparisons
+range(coefHat[, 1] - coefficients(fit_lamb_1))
+range(coefHat[, 2] - coefficients(fit_lamb_2))
+range(coefHat[, 3] - coefficients(fit_lamb_3))
+```
+
 # Chapter 3: Birth weight - a case study
+
+We read in the data:
+```{r}
+pregnant <- RwR::pregnant
+```
+
+and take a look at it:
+```{r}
+head(pregnant)
+summary(pregnant)
+```
+
+noting some unrealistically extreme values of `0` and `99` from `length` and `0` in weight, we exclude these cases from the subsequent analysis, as done in the book. While the book doesn't motivate its exclusion of `interviewWeek` as a predictor, we might note that given the job is to introduce
+
+```{r}
+pregnant <- pregnant %>% subset(weight > 32 &
+                                length > 10 &
+                                length < 99 &
+                                gestationalAge > 18,
+                                select = -c(interviewWeek, fetalDeath))
+```
+
+
+list of issues one should be aware of includes, but is not limited to
+
+1. Extreme observations
+
+2. Missing values
+
+3. skewness or asymmetry of marginal distributions
+
+4. co-linear covariates.
+
+
+We may plot the marginal distribution of various of the numerical variables with decent variation within them.
+Note the use of the `drop = FALSE` argument, which ensures preservation of the dimensionality and class of the columns of the data
+```{r}
+tmp <- lapply(names(pregnant), function(x)
+  ggplot(data = pregnant[, x, drop = FALSE]) + 
+    aes_string(x) + xlab(x) + ylab(""))
+gd <- geom_density(adjust = 2, fill = grey(0.5))
+gb <- geom_bar(fill = grey(0.5))
+grid.arrange(
+  tmp[[1]] + gd,
+  tmp[[4]] + gb,
+  tmp[[6]] + gb,
+  tmp[[8]] + gd,
+  tmp[[9]] + gd,
+  ncol = 5
+)
+```
+
+```{r}
+grid.arrange(
+  tmp[[2]] + gb,
+  tmp[[3]] + gb,
+  tmp[[5]] + gb,
+  tmp[[7]] + gb,
+  tmp[[10]] + gb +
+    aes(x = factor(feverEpisodes)) +
+    xlab("feverEpisodes"),
+  ncol = 5
+)
+```
+
+
+```{r}
+cor.print <- function(x,y) {
+  panel.text(mean(range(x)), mean(range(y)),
+             TeX(paste0('$', round(cor(x,y), digits = 2), '$')))
+}
+cont_var <- c("age", "gestationalAge", "alcohol", "length", "weight")
+splom(na.omit(pregnant)[, cont_var],
+              xlab = "",
+              upper.panel = panel.hexbinplot,
+              pscales = 0,
+              xbins = 20,
+              varnames = c("age", "gest. age", cont_var[3:5]),
+              lower.panel = cor.print)
+```
 
 
 # Chapter 4: Data analysis with regression models
