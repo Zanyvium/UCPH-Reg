@@ -438,8 +438,6 @@ qqq_data %>% ggplot(aes(a)) + geom_histogram()
 ```
 
 
-
-
 ```{r}
 ggplot(data = lm_model01_fort, mapping = aes(.stdresid)) + geom_histogram(bins = 40)
 ```

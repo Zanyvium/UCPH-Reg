@@ -111,6 +111,8 @@ blablabla
 
 6. ?scale_colour_discrete showcases a way of changing default colour scheme of ggplot
 
+7. Do not use %>% magrittr pipe for standard R functions. Try for example exp(4.1+0.33*log(10^6))
+   vs. 4.1+0.33*log(10^6) %>% exp()
 -->
 ```
 
@@ -381,6 +383,82 @@ set.seed(314)
 
 
 ```{r}
+beta0 <- -1
+beta1 <- 0.1
+beta2 <- 3
+beta_c <- c(beta0,beta1,beta2)
+X_i <- c(1,0,2)
+X_j <- c(1,1,2)
+exp(X_i%*%beta_c)
+exp(X_j%*%beta_c)
+exp(X_j%*%beta_c)/exp(X_i%*%beta_c)
+```
+
+
+```{r}
+data.y <- read.table("http://www.math.ku.dk/~susanne/data1.txt", header = TRUE)
+data.y %>% head()
+```
+
+```{r}
+model_lm <- lm(Y~X1+X2+X3, data = data.y)
+summary(model_lm)
+```
+```{r}
+(coeffs <- as.numeric(coef(model_lm)))
+coeffs[1] + -1*coeffs[2] + 1*coeffs[3] + 0.1*coeffs[4]
+```
+
+```{r}
+model_lm_ns <- lm(Y ~ ns(X1, df = 3) + X2 + ns(X3, df = 3), data = data.y)
+summary(model_lm_ns)
+```
+
+```{r}
+nsdiag <- fortify(model_lm_ns)
+nsdiag %>% names()
+nsdiag %>% ggplot(aes(x = .fitted, y = .stdresid)) +
+  geom_point() + 
+  geom_smooth()
+```
+
+```{r}
+nsdiag %>% head()
+nsdiag_x1x3 <- cbind(nsdiag, X1 = data.y$X1, X3 = data.y$X3)
+nsdiag_x1x3 %>% names()
+nsdiag_x1x3 %>% ggplot(aes(x = X1, y = .stdresid)) +
+  geom_point() + 
+  geom_smooth()
+```
+
+
+```{r}
+nsdiag_x1x3 %>% ggplot(aes(x = X3, y = .stdresid)) +
+  geom_point() + 
+  geom_smooth()
+```
+
+```{r}
+anova(model_lm, model_lm_ns)
+```
+
+
+Second model:
+```{r}
+data.y_cat <- read.table("http://www.math.ku.dk/~susanne/data1.txt", header = TRUE, colClasses = c("double", "double", "character", "double"))
+data.y_cat %>% head()
+```
+
+```{r}
+model_lm_cat <- lm(Y~X1+X2+X3, data = data.y_cat)
+summary(model_lm_cat)
+```
+
+
+
+
+<!-- ####### -->
+```{r}
 claims <- read.table("http://www.math.ku.dk/~richard/regression/data/claims.txt", sep = ";", colClasses = c("character", "numeric", "numeric", "factor")) 
 ```
 
@@ -433,13 +511,74 @@ predict_case <- data.frame(grp = as.factor(1), sum = exp(mean(log(claims_red$sum
 predict(add_lm, newdata = predict_case) %>% exp()
 ```
 
+## Exam quizzes
+
+### Attempt 1
 
 
+#### Q5:
+```{r}
+car <- read.table("http://math.ku.dk/~susanne/carInsurance.txt", header = TRUE, colClasses = c("character", "factor", "factor", "integer", "integer"))
+car %>% head()
+```
 
 
+```{r}
+apply(car, 2, unique)
+```
+
+```{r}
+sapply(car, levels)
+```
+
+```{r}
+car <- car %>% mutate(Y = Claims/Holders)
+lm_cat <- lm(Y ~ District + Motor + Age, data = car)
+summary(lm_cat)
+```
 
 
+<!-- TEST -->
+
+```{r}
+#test
+car_nonfac <- read.table("http://math.ku.dk/~susanne/carInsurance.txt", header = TRUE)
+car_nonfac <- car_nonfac %>% mutate(Y = Claims/Holders)
+lm_cat_nonfac <- lm(Y ~ District + Motor + Age, data = car_nonfac)
+summary(lm_cat_nonfac)
+```
+
+```{r}
+drop1(lm_cat, test = "F")
+```
 
 
+```{r}
+plot(lm_cat)
+ggplot(fortify(lm_cat), aes(x = .fitted, y = .stdresid)) +
+  geom_point() +
+  geom_smooth()
+```
+
+
+```{r}
+beta0 <- 4.1
+beta_sum <- 0.33
+beta_2 <- -0.12
+beta_3 <- 0.08
+beta_4 <- -0.06
+log10p6 <- log(10^6)
+```
+
+```{r}
+sub_i <- exp(beta0 + beta_sum*log10p6 + beta_2)
+sub_j <- exp(beta0 + beta_sum*log10p6 + beta_3)
+
+sub_j/sub_i
+```
+
+```{r}
+
+```
 
 
