@@ -252,7 +252,7 @@ knitr::opts_chunk$set(fig.align = 'center')
 options(warnPartialMatchDollar = TRUE) #see ADV-R chapter 4.3.2
 library(tidyverse)
 library(gridExtra)
-theme_set(theme_minimal())
+theme_set(theme_bw())
 library(MASS) #Has a conflict with dplyr regarding select.
 library(reshape2)
 library(caret) #Used for Machine Learning
@@ -678,6 +678,339 @@ splom(na.omit(pregnant)[, cont_var],
               xbins = 20,
               varnames = c("age", "gest. age", cont_var[3:5]),
               lower.panel = cor.print)
+```
+
+
+```{r}
+cp <- cor(data.matrix(na.omit(pregnant)), method = "spearman")
+ord <- rev(hclust(as.dist(1-abs(cp)))$order)
+col_pal <- colorRampPalette(c("blue", "yellow"), space = "rgb")(100)
+
+levelplot(cp[ord, ord],
+          xlab = "",
+          ylab = "",
+          col.regions = col_pal,
+          at = seq(-1,1, length.out = 100),
+          colorkey = list(space = "top", labels = list(cex = 1.5)),
+          scales = list(x = list(rot = 45),
+                        y = list(draw = FALSE),
+                        cex = 1.2))
+```
+
+
+```{r}
+m_pregnant <- melt(pregnant[, c("weight",
+                               "abortions",
+                               "children",
+                               "smoking",
+                               "coffee",
+                               "feverEpisodes")],
+                   id = "weight")
+m_pregnant %>% ggplot(aes(x = factor(value, level = 0:10), y = weight)) +
+  geom_boxplot(fill = I(grey(0.8))) +
+  xlab("") +
+  facet_wrap(~ variable, scale = "free_x", ncol = 5)
+```
+
+```{r}
+form <- weight ~ gestationalAge + length + age + children + coffee +
+  alcohol + smoking + abortions + feverEpisodes
+pregnant <- na.omit(pregnant)
+nul_model <- lm(weight ~ 1, data = pregnant)
+one_term_models <- add1(nul_model, form, test = "F")
+```
+
+```{r}
+m_pregnant <- melt(pregnant[, cont_var], 
+                   id.vars = "weight")
+bin_scale <- scale_fill_continuous(breaks = c(1, 10, 100, 1000),
+                                   low = "grey80",
+                                   high = "black",
+                                   trans = "log",
+                                   guide = "none")
+m_pregnant %>% ggplot(aes(x = value, y = weight)) +
+  geom_hex(bins = 20) + 
+  bin_scale +
+  xlab("") +
+  facet_wrap(~ variable, scales = "free_x", ncol = 4) +
+  geom_smooth(size = 1, method = "lm")
+```
+
+```{r}
+one_term_models
+```
+
+
+```{r}
+### update the form to be as it were, regressing the response (weight) on the 
+### original predictors, but now without length.
+form <- update(form, . ~ . - length) 
+pregnant_lm <- lm(form, data = pregnant)
+summary(pregnant_lm)
+```
+
+```{r}
+drop1(pregnant_lm, test = "F")
+```
+
+```{r}
+pregnant_diag <- fortify(pregnant_lm)
+p1 <- pregnant_diag %>% ggplot(aes(x = .fitted, y = .stdresid)) + 
+  geom_hex() +
+  geom_smooth(size = 1) +
+  bin_scale +
+  xlab("fitted values") +
+  ylab("standarised residuals")
+p2 <- pregnant_diag %>% ggplot(aes(x = gestationalAge, y = .stdresid)) + 
+  geom_hex(bins = 20) +
+  geom_smooth(size = 1) +
+  bin_scale +
+  xlab("gestationalAge") +
+  ylab("")
+p3 <- pregnant_diag %>% ggplot() + 
+  geom_qq(mapping = aes(sample = .stdresid)) +
+  geom_abline(intercept = 0, slope = 1, colour = "blue", size = 1) +
+  xlab("theoretical quantiles") +
+  ylab("")
+grid.arrange(p1, p2, p3, ncol = 3)
+```
+
+Note the use of `facet_grid` instead of `facet_wrap`
+```{r}
+pregnant %>% ggplot(aes(gestationalAge, weight)) +
+  geom_hex(bins = 20) +
+  bin_scale +
+  geom_smooth(method = "lm", size = 1, se = FALSE) +
+  facet_grid(coffee ~ children + smoking, labeller = label_both)
+```
+
+```{r}
+form <- weight ~ smoking * coffee * children * gestationalAge + age +
+  alcohol + abortions + feverEpisodes
+pregnant_lm_2 <- lm(form, data = pregnant)
+anova(pregnant_lm, pregnant_lm_2)
+```
+```{r}
+pregnant %>% ggplot(aes(gestationalAge, weight, colour = coffee)) +
+  facet_grid(. ~ children + smoking, label = label_both) +
+  geom_smooth(method = "lm", size = 1, se = FALSE)
+```
+
+```{r}
+pregnant_diag_2 <- fortify(pregnant_lm_2)
+pregnant_diag_2 %>% ggplot(aes(.fitted, .stdresid)) +
+  geom_hex() +
+  bin_scale +
+  geom_smooth(size = 1) +
+  xlab("fitted values") +
+  ylab("standardised residuals")
+```
+
+```{r}
+form <- weight ~ smoking * coffee * children * gestationalAge
+pregnant_lm_3 <- lm(form, data = pregnant)
+anova(pregnant_lm_3, pregnant_lm_2)
+```
+
+```{r}
+pregnant_diag_3 <- fortify(pregnant_lm_3)
+p1 <- pregnant_diag_3 %>% ggplot(aes(x = .fitted, y = .stdresid)) + 
+  geom_hex() +
+  geom_smooth(size = 1) +
+  bin_scale +
+  xlab("fitted values") +
+  ylab("standarised residuals")
+p2 <- pregnant_diag_3 %>% ggplot(aes(x = gestationalAge, y = .stdresid)) + 
+  geom_hex(bins = 20) +
+  geom_smooth(size = 1) +
+  bin_scale +
+  xlab("gestationalAge") +
+  ylab("")
+p3 <- pregnant_diag_3 %>% ggplot() + 
+  geom_qq(mapping = aes(sample = .stdresid)) +
+  geom_abline(intercept = 0, slope = 1, colour = "blue", size = 1) +
+  xlab("theoretical quantiles") +
+  ylab("")
+grid.arrange(p1, p2, p3, ncol = 3)
+rm(p1,p2,p3)
+```
+
+
+
+```{r}
+nsg <- function(x) {
+  ns(x, knots = c(38,40,42), Boundary.knots = c(25, 47))
+}
+form <- weight ~ nsg(gestationalAge) + ns(age, df = 3) + children + coffee + alcohol + smoking + abortions + feverEpisodes
+pregnant_lm_4 <- lm(form, data = pregnant)
+anova(pregnant_lm, pregnant_lm_4)
+```
+
+
+
+
+```{r}
+library(rlang)
+###!!! In theory we don't need to get the lm names in the beginning, 
+###!!! but could simply allow for possible swap and then deparse
+###!!! this however for some reason doesn't go too well.
+
+# check_nested_old <- function(lm_1, lm_2) {
+#   ### Checks whether lm_1 and lm_2 are nested
+#   ### using RwR exercise 2.1
+#   lm_1_name <- deparse(substitute(lm_1))
+#   lm_2_name <- deparse(substitute(lm_2))
+#   if(lm_2$df.residual<lm_1$df.residual) {
+#     # Swaps the models if lm_2 has used
+#     # more degrees of freedom than lm_1
+#     # So as to fit with the correct 
+#     # model matrices below
+#     lm_2_tmp <- lm_2
+#     lm_2_name_tmp <- lm_2_name
+#     lm_2 <- lm_1
+#     lm_2_name <- lm_1_name
+#     lm_1 <- lm_2_tmp
+#     lm_1_name <- lm_2_name_tmp
+#     rm(lm_2_tmp)
+#     rm(lm_2_name_tmp)
+#   }
+#   X <- model.matrix(lm_1)
+#   Xp <- model.matrix(lm_2)
+#   #C <- solve(t(X)%*%X)%*%t(X)%*%Xp  
+#   C <- tcrossprod(solve(crossprod(X,X)),X)%*%Xp
+#   range_xmxpc <- range(Xp-X%*%C)
+#   cat("Range of X' - XC\n",
+#       range_xmxpc,
+#       "\n", lm_2_name, "included in", lm_1_name, ":",
+#       range_xmxpc[1]<0 && abs(range_xmxpc[1])<1e-8 &&
+#         range_xmxpc[2]>0 && abs(range_xmxpc[2])<1e-8)
+# }
+
+
+check_nested <- function(lm_1, lm_2) {
+  ### Checks whether lm_1 and lm_2 are nested
+  ### using RwR exercise 2.1
+  lm_1_name <- deparse(substitute(lm_1))
+  lm_2_name <- deparse(substitute(lm_2))
+  if(lm_2$df.residual<lm_1$df.residual) {
+    X <- model.matrix(lm_2)
+    Xp <- model.matrix(lm_1)
+    lm_2_name_tmp <- lm_2_name
+    lm_2_name <- lm_1_name
+    lm_1_name <- lm_2_name_tmp
+    rm(lm_2_name_tmp)
+  } else {
+    X <- model.matrix(lm_1)
+    Xp <- model.matrix(lm_2)
+  }
+  #C <- solve(t(X)%*%X)%*%t(X)%*%Xp  
+  C <- tcrossprod(solve(crossprod(X,X)),X)%*%Xp
+  range_xmxpc <- range(Xp-X%*%C)
+  cat("Range of X' - XC\n",
+      range_xmxpc,
+      "\n", lm_2_name, "nested in", lm_1_name, ":",
+      range_xmxpc[1]<0 && abs(range_xmxpc[1])<1e-8 &&
+        range_xmxpc[2]>0 && abs(range_xmxpc[2])<1e-8)
+}
+```
+
+```{r}
+check_nested(pregnant_lm,  pregnant_lm_4)
+```
+
+```{r warning=FALSE, message=FALSE}
+pregnant_diag_4 <- fortify(pregnant_lm_4) %>% mutate(gestationalAge = pregnant$gestationalAge)
+p1 <- pregnant_diag_4 %>% ggplot(aes(x = .fitted, y = .stdresid)) + 
+  geom_hex() +
+  geom_smooth(size = 1) +
+  bin_scale +
+  xlab("fitted values") +
+  ylab("standarised residuals")
+p2 <- pregnant_diag_4 %>% ggplot(aes(x = gestationalAge, y = .stdresid)) + 
+  geom_hex(bins = 20) +
+  geom_smooth(size = 1) +
+  bin_scale +
+  xlab("gestationalAge") +
+  ylab("")
+p3 <- pregnant_diag_4 %>% ggplot() + 
+  geom_qq(mapping = aes(sample = .stdresid)) +
+  geom_abline(intercept = 0, slope = 1, colour = "blue", size = 1) +
+  xlab("theoretical quantiles") +
+  ylab("")
+grid.arrange(p1, p2, p3, ncol = 3)
+rm(p1,p2,p3)
+```
+
+
+```{r}
+form <- weight ~ nsg(gestationalAge) + children + coffee + smoking
+pregnant_lm_5 <- lm(form, data = pregnant)
+anova(pregnant_lm_5, pregnant_lm_4)
+```
+
+```{r}
+pred_frame <- expand.grid(children = factor(1),
+                          smoking = factor(c(1, 3)),
+                          coffee = factor(c(1, 3)),
+                          gestationalAge = seq(25, 47, 0.01),
+                          alcohol = 0,
+                          age = median(pregnant$age),
+                          feverEpisodes = 0,
+                          abortions = factor(0))
+pred_frame %>% head()
+pred_gest <- predict(pregnant_lm_4, newdata = pred_frame, interval = "confidence")
+pred_frame <- cbind(pred_frame, pred_gest)
+pred_frame %>% 
+  ggplot(aes(gestationalAge, fit)) +
+  geom_line(aes(colour = coffee)) +
+  ylab("weight") +
+  geom_ribbon(aes(ymin = lwr, ymax = upr, fill = coffee), alpha = 0.3) +
+  facet_grid(. ~ smoking, label = label_both) + ggtitle("pregnant_lm_4")
+```
+
+```{r}
+pred_frame <- expand.grid(children = factor(1),
+                          smoking = factor(c(1, 3)),
+                          coffee = factor(c(1, 3)),
+                          gestationalAge = seq(25, 47, 0.01),
+                          alcohol = 0,
+                          age = median(pregnant$age),
+                          feverEpisodes = 0,
+                          abortions = factor(0))
+pred_gest <- predict(pregnant_lm_5, newdata = pred_frame, interval = "confidence")
+pred_frame <- cbind(pred_frame, pred_gest)
+pred_frame %>% 
+  ggplot(aes(gestationalAge, fit)) +
+  geom_line(aes(colour = coffee)) +
+  ylab("weight") +
+  geom_ribbon(aes(ymin = lwr, ymax = upr, fill = coffee), alpha = 0.3) +
+  facet_grid(. ~ smoking, label = label_both) + ggtitle("pregnant_lm_5")
+```
+
+```{r}
+form <- weight ~ (smoking + coffee + children) * nsg(gestationalAge) +
+  ns(age, df = 3) + alcohol + abortions + feverEpisodes
+pregnant_lm_6 <- lm(form, data = pregnant)
+anova(pregnant_lm_5, pregnant_lm_6)
+```
+```{r}
+pred_frame <- expand.grid(children = factor(c(0, 1)),
+                          smoking = factor(c(1, 2, 3)),
+                          coffee = factor(c(1, 2, 3)),
+                          gestationalAge = 25:47,
+                          alcohol = 0,
+                          age = median(pregnant$age),
+                          feverEpisodes = 0,
+                          abortions = factor(0))
+pred_frame <- cbind(pred_frame, predict(pregnant_lm_6,  newdata = pred_frame, interval = "confidence"))
+pred_frame$fit5 <- predict(pregnant_lm_5, newdata = pred_frame)
+pred_frame %>% ggplot(aes(gestationalAge, fit)) + 
+  geom_ribbon(aes(ymin = lwr, ymax = upr), fill = grey(0.85)) + 
+  geom_line(colour = "red") +
+  geom_line(aes(y = fit5), colour = "blue") +
+  facet_grid(coffee ~ children + smoking, label = label_both) +
+  coord_cartesian(ylim = c(0,5000)) +
+  scale_y_continuous(breaks = c(1000, 2000, 3000, 4000))
 ```
 
 

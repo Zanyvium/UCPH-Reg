@@ -379,8 +379,9 @@ library(lpSolve)   ## Linear programming
 #library(RwR)       ## Regression with R dataset-package
 
 set.seed(314)
-```
 
+#utils::browseURL(getwd())
+```
 
 ```{r}
 beta0 <- -1
